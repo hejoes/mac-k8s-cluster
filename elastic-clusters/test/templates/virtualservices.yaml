@@ -1,0 +1,39 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Release.Name }}-kibana
+spec:
+  gateways:
+  - istio-system/istio-gateway
+  hosts:
+  - {{ .Values.kibana.url }} 
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: {{ .Release.Name }}-kb-http
+        port:
+          number: 5601
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Release.Name }}-elastic
+spec:
+  gateways:
+  - istio-system/istio-gateway
+  hosts:
+  - {{ .Values.elastic.url }} 
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: {{ .Release.Name }}-es-http
+        port:
+          number: 9200

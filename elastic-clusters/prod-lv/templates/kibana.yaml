@@ -1,0 +1,40 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: {{ .Release.Name }}
+  annotations:
+    eck.k8s.elastic.co/disable-downgrade-validation: "true" # Force allow a EC downgrade
+spec:
+  config:
+    server.publicBaseUrl: https://{{ .Release.Name }}.{{ .Values.kibana.domain }}:5601
+  version: {{ .Values.elkVersion }}
+  count: {{ .Values.kibana.replicas }}
+  elasticsearchRef:
+    name: {{ .Release.Name }}
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+    service:
+      spec:
+        ports:
+          - name: http
+            port: 5601
+            targetPort: 5601          
+  podTemplate:
+    spec:
+      containers:
+      - name: kibana 
+        resources:
+          {{- toYaml .Values.elastic.resources | nindent 10 }}
+      {{- with .Values.exporter.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.exporter.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    metadata:
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"

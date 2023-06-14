@@ -1,0 +1,59 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: {{ .Release.Name }}
+  annotations:
+    eck.k8s.elastic.co/disable-downgrade-validation: "true" # Force allow a EC downgrade, 
+spec:
+  version: {{ .Values.elkVersion }}
+  auth:
+    fileRealm:
+    - secretName: {{ .Release.Name }}-users-secret
+  http:
+    tls: 
+      selfSignedCertificate:
+        disabled: true
+  secureSettings:
+  - secretName: snapshot-settings
+  nodeSets:
+  - name: default
+    count: {{ .Values.elastic.replicas }}
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data # Do not change this name unless you set up a volume mount for the data path.
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.elastic.resources.storage }}
+        storageClassName: vsphere-sc
+
+    config:
+      node.store.allow_mmap: false
+      xpack.monitoring.collection.enabled: "true"
+    podTemplate:
+      metadata:
+        # annotations:
+        #   traffic.sidecar.istio.io/includeInboundPorts: "*"
+        #   traffic.sidecar.istio.io/excludeOutboundPorts: "9300,443" 
+        #   traffic.sidecar.istio.io/excludeInboundPorts: "9300"
+      spec:
+        automountServiceAccountToken: true 
+        containers:
+        - name: elasticsearch
+          resources:
+            requests:
+              memory: {{ .Values.elastic.resources.memory }}
+              cpu: {{ .Values.elastic.resources.cpu.request }}
+            limits:
+              memory: {{ .Values.elastic.resources.memory }}
+              cpu: {{ .Values.elastic.resources.cpu.limit }}
+        {{- with .Values.exporter.affinity }}
+        affinity:
+          {{- toYaml . | nindent 9 }}
+        {{- end }}
+        {{- with .Values.exporter.tolerations }}
+        tolerations:
+          {{- toYaml . | nindent 9 }}
+        {{- end }}

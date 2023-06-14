@@ -1,0 +1,19 @@
+users: dGVzdHVzZXI6JDJhJDEwJHZqZldVd2FDY2ljN2lnZmx2SHhCQ2VXQkQ2TnJVbURKZDRQaUdYS2JvdHdrdXdjbFB6aVZtCnRlc3R1c2VyMTokMmEkMTAkakFXNnhDUnZDV0Q1VzlPaXp4bC9DT0U5bTRTQ1BnR2RUQXppdno5SVJKaGtUcjBvSFVpd08K
+user_roles: c3VwZXJ1c2VyOnRlc3R1c2VyLHRlc3R1c2VyMQo=
+
+elastic:
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: 50m
+    limits:
+      memory: 4Gi
+      cpu: 4
+  storage: '10Gi'
+
+exporter:
+  extraEnvSecrets:
+    ES_PASSWORD:
+      secret: ee-prod-comment-api-v2-es-elastic-user
+  es: # Must be http://{{ .Release.name }}-es-http:9200 where release.name = argoApplication name
+    uri: http://ee-prod-comment-api-v2.kibana.delfi.ee-es-http:9200

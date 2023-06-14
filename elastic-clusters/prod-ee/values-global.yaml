@@ -1,0 +1,152 @@
+## {{ .Release.Name }} is used for elastic and kibana cluster names, release name = argoApplication name if not overriden
+elkVersion: "8.5.0"
+
+users: dGVzdHVzZXI6JDJhJDEwJHZqZldVd2FDY2ljN2lnZmx2SHhCQ2VXQkQ2TnJVbURKZDRQaUdYS2JvdHdrdXdjbFB6aVZtCnRlc3R1c2VyMTokMmEkMTAkakFXNnhDUnZDV0Q1VzlPaXp4bC9DT0U5bTRTQ1BnR2RUQXppdno5SVJKaGtUcjBvSFVpd08K
+user_roles: c3VwZXJ1c2VyOnRlc3R1c2VyLHRlc3R1c2VyMQo=
+
+elastic:
+  domain: elastic.delfi.ee
+  replicas: 3
+  storage: '3Gi'
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 50m
+    limits:
+      memory: 4Gi
+      cpu: 4
+
+kibana:
+  domain: kibana.delfi.ee
+  replicas: 1
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 20m
+    limits:
+      memory: 1Gi
+      cpu: 1
+
+# NB using same affinity and toleration rules for all components from exporter config
+exporter:
+  nameOverride: exporter
+  log:
+    format: json
+    level: info
+  resources: 
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  tolerations:
+    - key: "elastic"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: elastic
+                operator: In
+                values:
+                  - "true"
+
+  env:
+    ES_USERNAME: elastic
+  extraEnvSecrets:
+    ES_PASSWORD:
+      secret: example-es-elastic-user
+      key: elastic
+  es: # Must be http://{{ .Release.name }}-es-http:9200 where release.name = argoApplication name
+    ## If true, query stats for all nodes in the cluster, rather than just the
+    ## node we connect to.
+    ##
+    all: true
+
+    ## If true, query stats for all indices in the cluster.
+    ##
+    indices: true
+
+    ## If true, query settings stats for all indices in the cluster.
+    ##
+    indices_settings: true
+
+    ## If true, query mapping stats for all indices in the cluster.
+    ##
+    indices_mappings: true
+
+    ## If true, query stats for shards in the cluster.
+    ##
+    shards: true
+
+    ## If true, query stats for snapshots in the cluster.
+    ##
+    snapshots: true
+
+    ## If true, query stats for cluster settings.
+    ##
+    cluster_settings: false
+
+    ## Timeout for trying to get stats from Elasticsearch. (ex: 20s)
+    ##
+    timeout: 30s
+
+    ## Skip SSL verification when connecting to Elasticsearch
+    ## (only available if image.tag >= 1.0.4rc1)
+    ##
+    sslSkipVerify: false
+
+  serviceMonitor:
+    ## If true, a ServiceMonitor CRD is created for a prometheus operator
+    ## https://github.com/coreos/prometheus-operator
+    ##
+    enabled: true
+    #  namespace: monitoring
+    labels: {}
+    interval: 10s
+    jobLabel: ""
+    scrapeTimeout: 10s
+    scheme: http
+    relabelings: []
+    targetLabels: []
+    metricRelabelings: []
+    sampleLimit: 0
+
+  prometheusRule:
+    ## If true, a PrometheusRule CRD is created for a prometheus operator
+    ## https://github.com/coreos/prometheus-operator
+    ##
+    ## The rules will be processed as Helm template, allowing to set variables in them.
+    enabled: true
+    #  namespace: monitoring
+    labels: {}
+    rules: 
+      - record: elasticsearch_filesystem_data_used_percent
+        expr: |
+          100 * (elasticsearch_filesystem_data_size_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}"} - elasticsearch_filesystem_data_free_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}"})
+          / elasticsearch_filesystem_data_size_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}"}
+      - record: elasticsearch_filesystem_data_free_percent
+        expr: 100 - elasticsearch_filesystem_data_used_percent{service="{{ template "elasticsearch-exporter.fullname" . }}"}
+      - alert: ElasticsearchTooFewNodesRunning
+        expr: elasticsearch_cluster_health_number_of_nodes{service="{{ template "elasticsearch-exporter.fullname" . }}"} < 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          description: There are only {{ "{{ $value }}" }} < 3 ElasticSearch nodes running
+          summary: ElasticSearch running on less than 3 nodes
+      - alert: ElasticsearchHeapTooHigh
+        expr: |
+          elasticsearch_jvm_memory_used_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}", area="heap"} / elasticsearch_jvm_memory_max_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}", area="heap"}
+          > 0.9
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          description: The heap usage is over 90% for 15m
+          summary: ElasticSearch node {{ "{{ $labels.node }}" }} heap usage is high

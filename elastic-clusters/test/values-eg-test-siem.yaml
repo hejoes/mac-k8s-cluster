@@ -1,0 +1,25 @@
+users: dGVzdHVzZXI6JDJhJDEwJHZqZldVd2FDY2ljN2lnZmx2SHhCQ2VXQkQ2TnJVbURKZDRQaUdYS2JvdHdrdXdjbFB6aVZtCnRlc3R1c2VyMTokMmEkMTAkakFXNnhDUnZDV0Q1VzlPaXp4bC9DT0U5bTRTQ1BnR2RUQXppdno5SVJKaGtUcjBvSFVpd08K
+user_roles: c3VwZXJ1c2VyOnRlc3R1c2VyLHRlc3R1c2VyMQo=
+
+elastic:
+  url: "eg-test-siem.elastic.test.delfi.net"
+  resources:
+    storage: 10Gi
+    memory: 4Gi
+    cpu:
+      request: 1
+      limit: 4
+kibana:
+  url: "eg-test-siem.kibana.test.delfi.ee"
+  resources:
+    memory: 1Gi
+    cpu:
+      request: 200m
+      limit: 2
+# NB using same affinity and toleration rules for all components from exporter config
+exporter:
+  extraEnvSecrets:
+    ES_PASSWORD:
+      secret: eg-test-siem-es-elastic-user
+  es: # Must be http://{{ .Release.name }}-es-http:9200 where release.name = argoApplication name
+    uri: http://eg-test-siem-es-http:9200

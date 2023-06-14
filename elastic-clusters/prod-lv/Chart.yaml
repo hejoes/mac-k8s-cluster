@@ -1,0 +1,11 @@
+apiVersion: v2
+name: elasticsearch
+description: ECK elasticsearch, kibana and prometheus-exporter
+version: 0.1.0
+appVersion: "8.5-1.5"
+
+dependencies:
+- name: prometheus-elasticsearch-exporter
+  version: 4.15.1
+  repository: https://prometheus-community.github.io/helm-charts
+  alias: exporter

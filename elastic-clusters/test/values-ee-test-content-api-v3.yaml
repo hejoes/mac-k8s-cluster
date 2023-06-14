@@ -1,0 +1,25 @@
+users: dGVzdHVzZXI6JDJhJDEwJHZqZldVd2FDY2ljN2lnZmx2SHhCQ2VXQkQ2TnJVbURKZDRQaUdYS2JvdHdrdXdjbFB6aVZtCnRlc3R1c2VyMTokMmEkMTAkakFXNnhDUnZDV0Q1VzlPaXp4bC9DT0U5bTRTQ1BnR2RUQXppdno5SVJKaGtUcjBvSFVpd08K
+user_roles: c3VwZXJ1c2VyOnRlc3R1c2VyLHRlc3R1c2VyMQo=
+
+elastic:
+  url: "ee-test-content-api-v3.kibana.test.delfi.ee.elastic.test.delfi.net"
+  resources:
+    storage: '10Gi'
+    memory: '2Gi'
+    cpu:
+      request: '500m'
+      limit: '4'
+
+kibana:
+  url: "ee-test-content-api-v3.kibana.test.delfi.ee.kibana.test.delfi.ee"
+  resources:
+    memory: 1Gi
+    cpu:
+      request: 200m
+      limit: '1'
+exporter:
+  extraEnvSecrets:
+    ES_PASSWORD:
+      secret: ee-test-content-api-v3-es-elastic-user
+  es: # Must be http://{{ .Release.name }}-es-http:9200 where release.name = argoApplication name
+    uri: http://ee-test-content-api-v3.kibana.test.delfi.ee-es-http:9200
